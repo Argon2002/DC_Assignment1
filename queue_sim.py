@@ -26,6 +26,12 @@ CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w']
 
 
 class Queues(Simulation):
+    '''
+        n => servers count
+        lambda => Jobs arrive rate time
+        mu => server serve time
+        d => random queues(server) choosing
+    '''
     """Simulation of a system with n servers and n queues.
 
     The system has n servers with one queue each. Jobs arrive at rate lambd and are served at rate mu.
@@ -60,7 +66,7 @@ class Queues(Simulation):
 
     def schedule_completion(self, job_id, queue_index):  # TODO: complete this method
         """Schedule the completion of a job."""
-        
+                
         # schedule the time of the completion event
         # check `schedule_arrival` for inspiration
         
@@ -81,9 +87,9 @@ class Arrival(Event):
         self.id = job_id
 
     def process(self, sim: Queues):  # TODO: complete this method
-        sim.arrivals[self.id] = sim.t  # set the arrival time of the job
-        sample_queues = sample(range(sim.n), sim.d)  # sample the id of d queues at random
-        queue_index = min(sample_queues, key=sim.queue_len)  # shortest queue among the sampled ones
+        sim.arrivals[self.id] = sim.t  # set the arrival time of the job    sim.arrivals => a list of arrival time of the jobs
+        sample_queues = sample(range(sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
+        queue_index = min(sample_queues, key=sim.queue_len)  # shortest queue among the sampled ones => supermarket theory
         # check the key argument of the min built-in function:
         # https://docs.python.org/3/library/functions.html#min
 

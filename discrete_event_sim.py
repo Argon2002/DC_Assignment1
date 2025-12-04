@@ -1,4 +1,5 @@
 import logging
+import heapq
 
 # TODO: implement the event queue!
 # suggestion: have a look at the heapq library (https://docs.python.org/dev/library/heapq.html)
@@ -18,17 +19,19 @@ class Simulation:
 
         self.t = 0  # simulated time
         # TODO: set up self.events as an empty queue
+        self.events = []
 
     def schedule(self, delay, event):
         """Add an event to the event queue after the required delay."""
-
+        scheduleTime = self.t + delay # calculating event scheduled time
         # TODO: add event to the queue at time self.t + delay
-
+        heapq.heappush(self.events,(scheduleTime,event))
+        
     def run(self, max_t=float('inf')):
         """Run the simulation. If max_t is specified, stop it at that time."""
 
-        while ...:  # TODO: as long as the event queue is not empty:
-            t, event = ... # TODO: get the first event from the queue
+        while self.events:  # TODO: as long as the event queue is not empty:
+            t, event = heapq.heappop(self.events) # TODO: get the first event from the queue
             if t > max_t:
                 break
             self.t = t
