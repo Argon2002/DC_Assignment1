@@ -4,7 +4,7 @@ import argparse
 import csv
 import collections
 import logging
-from random import expovariate, sample, seed
+from random import expovariate, random, sample, seed
 
 from discrete_event_sim import Simulation, Event
 
@@ -89,8 +89,9 @@ class Arrival(Event):
 
     def process(self, sim: Queues):  # TODO: complete this method
         sim.arrivals[self.id] = sim.t  # set the arrival time of the job    sim.arrivals => a list of arrival time of the jobs
-        sample_queues = sample(range(sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
+        sample_queues = random.sample(range(0,sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
         queue_index = min(sample_queues, key=sim.queue_len)  # shortest queue among the sampled ones => supermarket theory
+        
         # check the key argument of the min built-in function:
         # https://docs.python.org/3/library/functions.html#min
 
@@ -100,10 +101,20 @@ class Arrival(Event):
             # set the incoming one
             # schedule its completion
         # otherwise, put the job into the queue
+        if sim.running[queue_index] is None:  # if cpu is free and there is no job in the selected server queue
+            sim.running[queue_index] = self.id
+            sim.schedule_completion(self.id,queue_index)
+        else:
+            sim.queues[queue_index].append(self.id)
+            
         # schedule the arrival of the next job
-
+        delay = expovariate(sim.lambd) # creating next arrival delay
+        next_job = Arrival(self.id+1) #creating next arrival job 
+        sim.schedule(delay,next_job) #scheduling arrival
+        
         # if you are looking for inspiration, check the `Completion` class below
 
+        
 
 class Completion(Event):
     """Job completion."""
