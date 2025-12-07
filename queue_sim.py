@@ -66,11 +66,12 @@ class Queues(Simulation):
 
     def schedule_completion(self, job_id, queue_index):  # TODO: complete this method
         """Schedule the completion of a job."""
+        job_service_time = expovariate(self.mu) # because the mu is the service rate 
                 
         # schedule the time of the completion event
         # check `schedule_arrival` for inspiration
         
-        self.schedule(..., ...)
+        self.schedule(job_service_time,Completion(job_id,queue_index))
 
     def queue_len(self, i):
         """Return the length of the i-th queue.
