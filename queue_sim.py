@@ -4,7 +4,7 @@ import argparse
 import csv
 import collections
 import logging
-from random import expovariate, random, sample, seed
+from random import expovariate, sample, seed
 
 from discrete_event_sim import Simulation, Event
 
@@ -50,8 +50,8 @@ class Queues(Simulation):
         self.n = n
         self.d = d
         self.mu = mu
-        self.arrival_rate = lambd * n  # frequency of new jobs is proportional to the number of queues
-        self.schedule(expovariate(lambd), Arrival(0))  # schedule the first arrival
+        self.arrival_rate = lambd * n # frequency of new jobs is proportional to the number of queues
+        self.schedule(expovariate(self.arrival_rate), Arrival(0))  # schedule the first arrival
 
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
@@ -89,7 +89,7 @@ class Arrival(Event):
 
     def process(self, sim: Queues):  # TODO: complete this method
         sim.arrivals[self.id] = sim.t  # set the arrival time of the job    sim.arrivals => a list of arrival time of the jobs
-        sample_queues = random.sample(range(0,sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
+        sample_queues = sample(range(0,sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
         queue_index = min(sample_queues, key=sim.queue_len)  # shortest queue among the sampled ones => supermarket theory
         
         # check the key argument of the min built-in function:
@@ -108,7 +108,7 @@ class Arrival(Event):
             sim.queues[queue_index].append(self.id)
             
         # schedule the arrival of the next job
-        delay = expovariate(sim.lambd) # creating next arrival delay
+        delay = expovariate(sim.arrival_rate) # creating next arrival delay
         next_job = Arrival(self.id+1) #creating next arrival job 
         sim.schedule(delay,next_job) #scheduling arrival
         
