@@ -3,8 +3,10 @@
 import argparse
 import csv
 import collections
+import json
 import logging
 from random import expovariate, sample, seed
+from matplotlib import pyplot as plt
 
 from discrete_event_sim import Simulation, Event
 
@@ -24,6 +26,22 @@ from discrete_event_sim import Simulation, Event
 # columns saved in the CSV file
 CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w']
 
+
+#Monitoring for generating the chart
+class Monitoring(Event):
+    
+    def process(self, sim):
+        # sum of queues 
+        queuesLengthSum = [sim.queue_len(i) for i in range(sim.n)]
+
+        #storing lengths
+        sim.monitor_datas.append(queuesLengthSum)
+        
+        #scheduling the next monitoring event
+        sim.schedule(sim.monitor_period, Monitoring())
+        
+        
+        
 
 class Queues(Simulation):
     '''
@@ -52,6 +70,11 @@ class Queues(Simulation):
         self.mu = mu
         self.arrival_rate = lambd * n # frequency of new jobs is proportional to the number of queues
         self.schedule(expovariate(self.arrival_rate), Arrival(0))  # schedule the first arrival
+        
+        self.monitor_period = 0.5
+        self.monitor_datas = []
+        
+        self.schedule(self.monitor_period,Monitoring())
 
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
@@ -145,7 +168,9 @@ def main():
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument("--seed", help="random seed")
     parser.add_argument("--verbose", action='store_true')
+    parser.add_argument("--out", type=str, help="output filename for CDF json file" )        
     args = parser.parse_args()
+
 
     params = [getattr(args, column) for column in CSV_COLUMNS[:-1]]
     # corresponds to params = [args.lambd, args.mu, args.max_t, args.n, args.d]
@@ -170,6 +195,64 @@ def main():
     W = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
          / len(completions))
     print(f"Average time spent in the system: {W}")
+   
+    all_lengths = []
+    for snapshot in sim.monitor_datas:
+        for length in snapshot:
+            all_lengths.append(length)
+    print("collected length:", len(all_lengths))
+    print("sample values:",all_lengths[:20]) 
+    
+    count = collections.Counter(all_lengths)
+    print("countered data", count)       
+    
+    total = sum(count.values())
+    max_len = max(count.keys())
+    cdf = {} 
+    
+    for x in range(max_len + 1):
+        cdf[x] = sum(v for k, v in count.items() if k >= x) / total
+        
+    print("Cdf:",cdf)    
+    choices = [1, 2, 5, 10]
+    lambdas = [0.5, 0.9, 0.95, 0.99]
+
+    for d in choices:
+        plt.figure(figsize=(7,5))
+        for lambd in lambdas:
+            xs, ys = theoretical_cdf(lambd, d)
+            plt.plot(xs, ys, marker='o', label=f"λ = {lambd}")
+
+        plt.title(f"{d} choices")
+        plt.xlabel("Queue length")
+        plt.ylabel("Fraction of queues with at least that size")
+        plt.grid(True)
+        plt.legend()
+        plt.ylim(0, 1.05)
+        plt.show()
+        
+    
+        # for storing the cdfs as json
+        if args.out:
+            with open(args.out, "w") as f:
+                json.dump(cdf,f)
+                
+    # # creating x and y axis
+    # xs = sorted(cdf.keys())
+    # ys = [cdf[x] for x in xs]
+    
+    # # drawing chart
+    # plt.figure(figsize=(8,5))
+    # plt.plot(xs, ys, marker='o', label = f'd = {args.d}')
+    # plt.yscale('log')
+    # plt.xlabel("Queue Length (x)")
+    # plt.ylabel("Fraction of queues with size >= x")
+    # plt.title(f"Queue Length CDF (n={args.n}, lambda={args.lambd}, mu={args.mu}, d={args.d})")
+    # plt.grid(True)
+    # plt.legend()
+    
+    # plt.show() 
+    
     if args.mu == 1 and args.lambd != 1:
         print(f"Theoretical expectation for random server choice (d=1): {1 / (1 - args.lambd)}")
 
@@ -177,6 +260,25 @@ def main():
         with open(args.csv, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(params + [W])
+    
+    
+import numpy as np
+import matplotlib.pyplot as plt
+
+def theoretical_cdf(lambd, d, max_x=15):
+    xs = np.arange(0, max_x+1)
+
+    if d == 1:
+        ys = lambd ** xs
+    else:
+        ys = lambd ** ((d**xs - 1) / (d - 1))
+
+    return xs, ys
+
+
+    
+   
+        
 
 
 if __name__ == '__main__':
