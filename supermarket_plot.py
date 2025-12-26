@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 
 # <========= Theoretical Part Of CDF =========>
 
-def theoretical_cdf(lambd,d,max_t=20):
-    xs = np.arange(0, max_t + 1)
+def theoretical_cdf(lambd,d,max_x):
+    xs = np.arange(0, max_x + 1)
     if(d == 1):
         ys = lambd ** xs
     else:
@@ -34,15 +34,20 @@ def plot_combined(d_values, lambd, experimental_files):
     plt.figure(figsize=(7,5))
 
     for d in d_values:
-        # theoretical
-        xs_t, ys_t = theoretical_cdf(lambd, d)
-        plt.plot(xs_t, ys_t, '--', label=f"Theory d={d}")
+        max_x = 20 
 
         # experimental
         if d in experimental_files:
             xs_e, ys_e = load_experimental(experimental_files[d])
+            if xs_e:
+                max_x = max(xs_e)
             plt.plot(xs_e, ys_e, marker='o', label=f"Sim d={d}")
-
+            
+            
+        # theoretical
+        xs_t, ys_t = theoretical_cdf(lambd, d, max_x=max_x)
+        plt.plot(xs_t, ys_t, '--', label=f"Theory d={d}")    
+    
     plt.xlabel("Queue length x")
     plt.ylabel("P(queue length ≥ x)")
     plt.title(f"Supermarket Model (λ={lambd})")
@@ -52,17 +57,3 @@ def plot_combined(d_values, lambd, experimental_files):
     plt.show()
 
 
-# <========= Example Usage =========>
-
-if __name__ == "__main__":
-    lambd = 0.8
-    d_values = [1, 2, 5]
-
-    experimental_files = {
-        1: "d1.json",
-        2: "d2.json",
-        5: "d5.json",
-    }
-
-    plot_combined(d_values, lambd, experimental_files) 
-         

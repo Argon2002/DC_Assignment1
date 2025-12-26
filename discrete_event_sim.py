@@ -2,6 +2,7 @@ import logging
 import heapq
 
 # TODO: implement the event queue!
+# مدیریت کننده زمانه فقط این فایل
 # suggestion: have a look at the heapq library (https://docs.python.org/dev/library/heapq.html)
 # and in particular heappush and heappop
 
