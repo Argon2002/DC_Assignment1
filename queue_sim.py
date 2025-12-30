@@ -61,7 +61,9 @@ class Queues(Simulation):
     """
     
 
-    def __init__(self, lambd, mu, n, d, weibull_shape_service, weibull_shape_arrival):
+    def __init__(self, lambd, mu, n, d, weibull_shape_service, weibull_shape_arrival, queue_capacity=None,
+        overflow_behaviour_option="drop", max_retries=3):
+        
         super().__init__()
         self.running = [None] * n  # if not None, the id of the running job (per queue)
         self.queues = [collections.deque() for _ in range(n)]  # FIFO queues of the system
@@ -74,6 +76,15 @@ class Queues(Simulation):
         self.mu = mu
         self.arrival_rate = lambd * n # frequency of new jobs is proportional to the number of queues
         
+        # extension
+        self.queue_capacity = queue_capacity
+        self.overflow_behaviour_option = overflow_behaviour_option
+        self.max_retries = max_retries
+        
+        self.total_arrivals = 0
+        self.dropped_jobs = 0
+        self.retry_attemps = 0
+         
         self.weibull_shape_service = weibull_shape_service
         if weibull_shape_service != None:
             mean_service = 1 / mu
@@ -93,12 +104,6 @@ class Queues(Simulation):
         
         self.schedule(self.monitor_interval,Monitoring())
         
-        print("======================>")
-        print(self.weibull_shape_arrival)
-        print(self.weibull_shape_service)
-        print("======================>")
-        
-
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
 
@@ -204,7 +209,11 @@ def main():
     parser.add_argument("--verbose", action='store_true')   
     parser.add_argument("--out", type=str, help="output filename for CDF json file" ) 
     parser.add_argument("--weibull_shape_service", type=float, help="enter the shape value for weibull")       
-    parser.add_argument("--weibull_shape_arrival", type=float, help="weibull_shape arrival rate (k = 1 => exponential, k < 1 => heavy-tail)")       
+    parser.add_argument("--weibull_shape_arrival", type=float, help="weibull_shape arrival rate (k = 1 => exponential, k < 1 => heavy-tail)")   
+    #extension
+    parser.add_argument("--queue_capacity", type=int, default=None, help="setting max queue capacity (including running job). If not set, queues are infinite.")    
+    parser.add_argument("--overflow_behaviour_option", choices=["drop", "retry"], default="drop", help="Options when the queue is full.")
+    parser.add_argument("--max_retries", type=int, default=3, help= "Max retries if overflow_behaviour_option is retry.")
     args = parser.parse_args()
 
 
@@ -224,7 +233,15 @@ def main():
     if args.lambd >= args.mu:
         logging.warning("The system is unstable: lambda >= mu")
         
-    sim = Queues(args.lambd, args.mu, args.n, args.d, args.weibull_shape_service, args.weibull_shape_arrival)
+    sim = Queues(args.lambd,
+                 args.mu,
+                 args.n,
+                 args.d,
+                 args.weibull_shape_service,
+                 args.weibull_shape_arrival,
+                 args.queue_capacity,
+                 args.overflow_behaviour_option,
+                 args.max_retries)
     sim.run(args.max_t)
 
     completions = sim.completions
