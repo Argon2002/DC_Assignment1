@@ -149,32 +149,43 @@ class Arrival(Event):
     def __init__(self, job_id):
         self.id = job_id
 
-    def process(self, sim: Queues):  # TODO: complete this method
-        sim.arrivals[self.id] = sim.t  # set the arrival time of the job    sim.arrivals => a list of arrival time of the jobs
+    def process(self, sim: Queues):
+        
+        sim.total_arrivals += 1
         #طبق اصل supermarket باید d تا صف رو رندوم انتخاب کنیم
-        sample_queues = sample(range(0,sim.n), sim.d)  # getting d sample queues => choosing d queues from all quesues in random     
-        queue_index = min(sample_queues, key=sim.queue_len)  # shortest queue among the sampled ones => supermarket theory
-
-        # if there is no running job in the queue:
-            # set the incoming one
-            # schedule its completion
-        # otherwise, put the job into the queue
-        if sim.running[queue_index] is None:  # if cpu is free and there is no job in the selected server queue
-            sim.running[queue_index] = self.id
-            sim.schedule_completion(self.id,queue_index)
-        else:
-            sim.queues[queue_index].append(self.id)
+        sample_queues = sample(range(0,sim.n),sim.d)
+        queue_index = min(sample_queues,key=sim.queue_len)
+        
+        accepted = True
+        
+        if sim.queue_capacity is not None and sim.queue_len(queue_index) >= sim.queue_capacity:
+            accepted = False
             
+            if (sim.overflow_behaviour_option == "retry"):
+                 # chosing d sample queues untill max_retires
+                for _ in range(sim.max_retries):
+                    sim.retry_attemps += 1
+                    sample_queues = sample(range(0,sim.n),sim.d)
+                    queue_index = min(sample_queues,key=sim.queue_len)
+                    if(sim.queue_len(queue_index) < sim.queue_capacity):
+                        accepted = True
+                        break
+            if not accepted:
+                sim.dropped_jobs += 1
+        
+        if accepted:
+            sim.arrivals[self.id] = sim.t
+            # if there is no running job in the queue:
+                # set the incoming one
+                # schedule its completion
+            # otherwise, put the job into the queue
+            if(sim.running[queue_index] is None):
+                sim.running[queue_index] = self.id
+                sim.schedule_completion(self.id,queue_index)
+            else:
+                sim.queues[queue_index].append(self.id)
             
         sim.schedule_arrival(self.id + 1)
-            
-        # # schedule the arrival of the next job
-        # delay = expovariate(sim.arrival_rate) # creating next arrival delay
-        # next_job = Arrival(self.id+1) #creating next arrival job 
-        # sim.schedule(delay,next_job) #scheduling next arrival(for continuing sim)
-        
-        # if you are looking for inspiration, check the `Completion` class below
-
         
 
 class Completion(Event):
@@ -205,7 +216,7 @@ def main():
     parser.add_argument('--d', type=int, default=1, help="number of queues to sample")
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument('--plot', action="store_true", help="plot combined curves after simulation")
-    parser.add_argument("--seed", help="random seed")
+    parser.add_argument("--seed",type=int, help="random seed")
     parser.add_argument("--verbose", action='store_true')   
     parser.add_argument("--out", type=str, help="output filename for CDF json file" ) 
     parser.add_argument("--weibull_shape_service", type=float, help="enter the shape value for weibull")       
@@ -242,12 +253,24 @@ def main():
                  args.queue_capacity,
                  args.overflow_behaviour_option,
                  args.max_retries)
+    
     sim.run(args.max_t)
 
     completions = sim.completions
-    W = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
+    if len(sim.completions)  > 0:
+        W = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
          / len(completions))
-    print(f"Average time spent in the system: {W}")
+        print(f"Average time spent in the system: {W}")
+    else:
+        W = None
+        print("Average time spent in the system: None (there are no completed jobs)")
+    
+    
+    if sim.queue_capacity is not None:
+        drop_rate = sim.dropped_jobs/sim.total_arrivals if sim.total_arrivals > 0 else 0.0
+        print(f"Dropped jobs: {sim.dropped_jobs} / {sim.total_arrivals} => drop rate is: {drop_rate:.4f}")
+        if sim.overflow_behaviour_option == "retry":
+            print(f"Total retry attempt is: {sim.retry_attemps}")
    
     count = sim.length_counter
     total = sim.num_samples

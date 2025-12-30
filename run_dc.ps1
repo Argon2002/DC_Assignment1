@@ -5,7 +5,10 @@ param(
   [double]$MAXT = 20000,
   [Nullable[int]]$SEED = $null,  
   [Nullable[double]]$WEIBULL_SERVICE_SHAPE = $null,
-  [Nullable[double]]$WEIBULL_ARRIVAL_SHAPE = $null
+  [Nullable[double]]$WEIBULL_ARRIVAL_SHAPE = $null,
+  [Nullable[int]]$QUEUE_CAPACITY = $null,
+  [string]$OVERFLOW_BEHAVIOUR_OPTION = $null,
+  [Nullable[int]]$MAX_RETRIES = $null
 )
 
 $DS = @(1,2,5,10)
@@ -32,6 +35,20 @@ foreach ($d in $DS) {
 
   if ($null -ne $WEIBULL_ARRIVAL_SHAPE) {
     $cmd += @("--weibull_shape_arrival", "$WEIBULL_ARRIVAL_SHAPE")
+  }
+
+
+
+  if ($null -ne $QUEUE_CAPACITY) {
+    $cmd += @("--queue_capacity", "$QUEUE_CAPACITY")
+  }
+
+  if ($null -ne $OVERFLOW_BEHAVIOUR_OPTION -and $OVERFLOW_BEHAVIOUR_OPTION -ne "") {
+    $cmd += @("--overflow_behaviour_option", "$OVERFLOW_BEHAVIOUR_OPTION")
+  }
+
+  if ($null -ne $MAX_RETRIES) {
+    $cmd += @("--max_retries", "$MAX_RETRIES")
   }
 
 
