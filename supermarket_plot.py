@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-# <========= Theoretical Part Of CDF =========>
+# <========= Theoretical CDF =========>
 
 def theoretical_cdf(lambd,d,max_x):
     xs = np.arange(0, max_x + 1)
@@ -48,8 +48,8 @@ def plot_combined(d_values, lambd, experimental_files):
         xs_t, ys_t = theoretical_cdf(lambd, d, max_x=max_x)
         plt.plot(xs_t, ys_t, '--', label=f"Theory d={d}")    
     
-    plt.xlabel("Queue length x")
-    plt.ylabel("P(queue length ≥ x)")
+    plt.xlabel("Queue length")
+    plt.ylabel("Fraction of queues with at least that size")
     plt.title(f"Supermarket Model (λ={lambd})")
     plt.grid(True)
     plt.legend()

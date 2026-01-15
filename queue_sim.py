@@ -73,6 +73,9 @@ class Queues(Simulation):
         self.lambd = lambd
         self.n = n
         self.d = d
+        print("==================================")
+        print(self.d)
+        print("==================================")
         self.mu = mu
         self.arrival_rate = lambd * n # frequency of new jobs is proportional to the number of queues
         
@@ -121,7 +124,7 @@ class Queues(Simulation):
 
         self.schedule(delay, Arrival(job_id))
 
-    def schedule_completion(self, job_id, queue_index):  # TODO: complete this method
+    def schedule_completion(self, job_id, queue_index): 
         """Schedule the completion of a job."""
 
         # check whether it is weibull or not
@@ -216,6 +219,7 @@ def main():
     parser.add_argument('--d', type=int, default=1, help="number of queues to sample")
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument('--plot', action="store_true", help="plot combined curves after simulation")
+    parser.add_argument('--plot_only', action='store_true', help="only plot existing d*.json files without running a simulation")
     parser.add_argument("--seed",type=int, help="random seed")
     parser.add_argument("--verbose", action='store_true')   
     parser.add_argument("--out", type=str, help="output filename for CDF json file" ) 
@@ -243,6 +247,36 @@ def main():
 
     if args.lambd >= args.mu:
         logging.warning("The system is unstable: lambda >= mu")
+    
+    
+    # checking the d variable ( must be greated than n and positive for sure)    
+    if args.d <= 0:
+        logging.error("d must be a positive integer")
+        exit(1)
+
+    if args.d > args.n:
+        logging.error(f"d must be <= n (got d={args.d}, n={args.n})")
+        exit(1)    
+        
+        
+    if(args.plot_only):
+        import glob
+        import re
+        
+        files = glob.glob("d*.json")
+        d_values = []
+        mapping = {}
+
+        for filename in files:
+            match = re.match(r"d(\d+)\.json", filename)
+            if match:
+                d = int(match.group(1))
+                d_values.append(d)
+                mapping[d] = filename
+
+        d_values.sort()
+        plotting.plot_combined(d_values, args.lambd, mapping)
+        return    
         
     sim = Queues(args.lambd,
                  args.mu,
@@ -291,7 +325,25 @@ def main():
             json.dump(cdf,f)
             
     if(args.plot):
-        plotting.plot_combined([1,2,5,10],args.lambd,{1:"d1.json",2:"d2.json",5:"d5.json",10:"d10.json"})
+        import glob
+        import re
+        
+        files = glob.glob("d*.json")
+        d_values = []
+        mapping = {}
+
+        for filename in files:
+            match = re.match(r"d(\d+)\.json", filename)
+            if match:
+                d = int(match.group(1))
+                d_values.append(d)
+                mapping[d] = filename
+
+        d_values.sort()
+        plotting.plot_combined(d_values, args.lambd, mapping)
+        
+        
+        # plotting.plot_combined([1,2,5,10],args.lambd,{1:"d1.json",2:"d2.json",5:"d5.json",10:"d10.json"})
  
 
     if args.csv is not None:

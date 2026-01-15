@@ -8,15 +8,16 @@ param(
   [Nullable[double]]$WEIBULL_ARRIVAL_SHAPE = $null,
   [Nullable[int]]$QUEUE_CAPACITY = $null,
   [string]$OVERFLOW_BEHAVIOUR_OPTION = $null,
-  [Nullable[int]]$MAX_RETRIES = $null
+  [Nullable[int]]$MAX_RETRIES = $null,
+  [Parameter()]
+  [int[]]$D = @(1,2,5,10)
 )
 
-$DS = @(1,2,5,10)
 
 
 Remove-Item -ErrorAction SilentlyContinue d*.json
 
-foreach ($d in $DS) {
+foreach ($d in $D) {
   $cmd = @("python", "queue_sim.py",
            "--lambd", "$LAMBD",
            "--mu", "$MU",
@@ -52,10 +53,14 @@ foreach ($d in $DS) {
   }
 
 
+
   Write-Host "Running d=$d -> d$d.json"
   & $cmd[0] $cmd[1..($cmd.Length-1)]
+
+
 }
 
 Write-Host "All json files generated."
 Write-Host "Now run: python queue_sim.py --plot"
-python queue_sim.py --lambd $LAMBD --plot
+
+python queue_sim.py --lambd $LAMBD --plot_only
