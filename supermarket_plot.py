@@ -54,6 +54,7 @@ def plot_combined(d_values, lambd, experimental_files):
     plt.grid(True)
     plt.legend()
     plt.ylim(0, 1.05)
+    plt.xlim(0,14)
     plt.show()
 
 
