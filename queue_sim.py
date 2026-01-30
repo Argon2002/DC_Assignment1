@@ -241,24 +241,31 @@ def main():
         exit(1)    
         
         
-    if(args.plot_only):
-        import glob
+    
+    def cdf_files():
+        import glob 
         import re
         
-        files = glob.glob("d*.json")
+        files = glob.glob("d*.json")  
         d_values = []
         mapping = {}
-
+        
         for filename in files:
             match = re.match(r"d(\d+)\.json", filename)
             if match:
                 d = int(match.group(1))
                 d_values.append(d)
                 mapping[d] = filename
-
+                
         d_values.sort()
+        return d_values, mapping        
+        
+    if(args.plot_only):
+        d_values, mapping = cdf_files()
         plotting.plot_combined(d_values, args.lambd, mapping)
         return    
+        
+        
         
     sim = Queues(args.lambd,
                  args.mu,
@@ -307,27 +314,10 @@ def main():
             json.dump(cdf,f)
             
     if(args.plot):
-        import glob
-        import re
-        
-        files = glob.glob("d*.json")
-        d_values = []
-        mapping = {}
-
-        for filename in files:
-            match = re.match(r"d(\d+)\.json", filename)
-            if match:
-                d = int(match.group(1))
-                d_values.append(d)
-                mapping[d] = filename
-
-        d_values.sort()
+        d_values, mapping = cdf_files()
         plotting.plot_combined(d_values, args.lambd, mapping)
         
         
-        # plotting.plot_combined([1,2,5,10],args.lambd,{1:"d1.json",2:"d2.json",5:"d5.json",10:"d10.json"})
- 
-
     if args.csv is not None:
         with open(args.csv, 'a', newline='') as f:
             writer = csv.writer(f)
