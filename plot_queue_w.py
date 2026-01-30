@@ -83,6 +83,7 @@ def main():
 
     data = read_csv(args.filename, args.mu, args.max_t, args.n, args.d)
     plot(data, args.log_scale)
+    plt.ylim(0, 10)
     plt.show()
 
 if __name__ == '__main__':
