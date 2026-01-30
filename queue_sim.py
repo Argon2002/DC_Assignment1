@@ -7,7 +7,7 @@ import logging
 import numpy as np
 import supermarket_plot as plotting
 import collections
-from random import expovariate, sample, seed
+from random import sample, seed
 from matplotlib import pyplot as plt
 from workloads import weibull_generator # for weibull behaviour instead of memoryless behaviour
 from discrete_event_sim import Simulation, Event
@@ -73,9 +73,6 @@ class Queues(Simulation):
         self.lambd = lambd
         self.n = n
         self.d = d
-        print("==================================")
-        print(self.d)
-        print("==================================")
         self.mu = mu
         self.arrival_rate = lambd * n # frequency of new jobs is proportional to the number of queues
         
@@ -89,14 +86,15 @@ class Queues(Simulation):
         self.retry_attemps = 0
          
         self.weibull_shape_service = weibull_shape_service
-        if weibull_shape_service != None:
-            mean_service = 1 / mu
-            self.weibull_service_gen = weibull_generator(self.weibull_shape_service,mean_service)
+        if weibull_shape_service <= 0 or weibull_shape_arrival <= 0:
+            raise ValueError("Weibull shape parameters must be greater than 0")
+        
+        mean_service = 1 / mu
+        self.weibull_service_gen = weibull_generator(self.weibull_shape_service,mean_service)
             
         self.weibull_shape_arrival = weibull_shape_arrival
-        if self.weibull_shape_arrival is not None:
-            mean_interarrival = 1 / self.arrival_rate
-            self.weibull_arrival_gen = weibull_generator(self.weibull_shape_arrival,mean_interarrival) 
+        mean_interarrival = 1 / self.arrival_rate
+        self.weibull_arrival_gen = weibull_generator(self.weibull_shape_arrival,mean_interarrival) 
         
         # schedule the first arrival
         self.schedule_arrival(0)
@@ -109,33 +107,17 @@ class Queues(Simulation):
         
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
-
-        # schedule the arrival following an exponential distribution, to compensate the number of queues the arrival
-        # time should depend also on "n"
-
-        # memoryless behavior results in exponentially distributed times between arrivals (we use `expovariate`)
-        # the rate of arrivals is proportional to the number of queues
         
-        # check whether it is weibull or not
-        if self.weibull_shape_arrival is not None:
-            delay = self.weibull_arrival_gen()
-        else:
-            delay = expovariate(self.arrival_rate)   
-
+        delay = self.weibull_arrival_gen()
         self.schedule(delay, Arrival(job_id))
+
 
     def schedule_completion(self, job_id, queue_index): 
         """Schedule the completion of a job."""
 
-        # check whether it is weibull or not
-        if(self.weibull_shape_service != None):
-            weibull_generated_delay = self.weibull_service_gen()
-            # schedule the time of the completion event
-            self.schedule(weibull_generated_delay,Completion(job_id,queue_index))
-        else:
-            job_service_time = expovariate(self.mu) # because the mu is the service rate 
-            # schedule the time of the completion event
-            self.schedule(job_service_time,Completion(job_id,queue_index))
+        job_service_time = self.weibull_service_gen()
+        # schedule the time of the completion event
+        self.schedule(job_service_time,Completion(job_id,queue_index))
                     
 
     def queue_len(self, i):
@@ -223,8 +205,8 @@ def main():
     parser.add_argument("--seed",type=int, help="random seed")
     parser.add_argument("--verbose", action='store_true')   
     parser.add_argument("--out", type=str, help="output filename for CDF json file" ) 
-    parser.add_argument("--weibull_shape_service", type=float, help="enter the shape value for weibull")       
-    parser.add_argument("--weibull_shape_arrival", type=float, help="weibull_shape arrival rate (k = 1 => exponential, k < 1 => heavy-tail)")   
+    parser.add_argument("--weibull_shape_service", default=1.0, type=float, help="enter the shape value for weibull")       
+    parser.add_argument("--weibull_shape_arrival", default=1.0, type=float, help="weibull_shape arrival rate (k = 1 => exponential, k < 1 => heavy-tail)")   
     #extension
     parser.add_argument("--queue_capacity", type=int, default=None, help="setting max queue capacity (including running job). If not set, queues are infinite.")    
     parser.add_argument("--overflow_behaviour_option", choices=["drop", "retry"], default="drop", help="Options when the queue is full.")
