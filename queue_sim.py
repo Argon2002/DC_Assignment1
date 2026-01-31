@@ -202,7 +202,7 @@ def main():
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument('--plot', action="store_true", help="plot combined curves after simulation")
     parser.add_argument('--plot_only', action='store_true', help="only plot existing d*.json files without running a simulation")
-    parser.add_argument("--seed",type=int, help="random seed")
+    parser.add_argument("--seed",type=int, default=1, help="random seed")
     parser.add_argument("--verbose", action='store_true')   
     parser.add_argument("--out", type=str, help="output filename for CDF json file" ) 
     parser.add_argument("--weibull_shape_service", default=1.0, type=float, help="enter the shape value for weibull")       
